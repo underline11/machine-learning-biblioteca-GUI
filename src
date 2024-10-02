@@ -1,0 +1,92 @@
+import tkinter as tk
+from tkinter import messagebox
+import sqlite3
+
+# Conecta ao banco de dados SQLite
+conn = sqlite3.connect('biblioteca.db')
+cursor = conn.cursor()
+
+# Cria as tabelas se não existirem
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS autores (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL,
+    nacionalidade TEXT NOT NULL
+)
+''')
+
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS livros (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    titulo TEXT NOT NULL,
+    autor_id INTEGER,
+    ano_publicacao INTEGER,
+    FOREIGN KEY (autor_id) REFERENCES autores(id)
+)
+''')
+
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS emprestimos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    livro_id INTEGER,
+    data_emprestimo DATE,
+    nome_usuario TEXT,
+    FOREIGN KEY (livro_id) REFERENCES livros(id)
+)
+''')
+
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS emprestimos_expirados (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    livro_id INTEGER,
+    data_emprestimo DATE,
+    nome_usuario TEXT,
+    FOREIGN KEY (livro_id) REFERENCES livros(id)
+)
+''')
+
+# Funções para adicionar e visualizar dados
+def add_autor():
+    nome = entry_nome_autor.get()
+    nacionalidade = entry_nacionalidade_autor.get()
+    if nome and nacionalidade:
+        cursor.execute('INSERT INTO autores (nome, nacionalidade) VALUES (?, ?)', (nome, nacionalidade))
+        conn.commit()
+        messagebox.showinfo("Sucesso", "Autor adicionado com sucesso!")
+        entry_nome_autor.delete(0, tk.END)
+        entry_nacionalidade_autor.delete(0, tk.END)
+    else:
+        messagebox.showwarning("Erro", "Por favor, insira um nome e nacionalidade do autor.")
+
+def visualizar_autores():
+    cursor.execute('SELECT * FROM autores')
+    autores = cursor.fetchall()
+    messagebox.showinfo("Autores", "\n".join([f"{id}: {nome} ({nacionalidade})" for id, nome, nacionalidade in autores]))
+
+# Outras funções (add_livro, visualizar_livros, etc.) não foram alteradas
+
+# Interface gráfica
+root = tk.Tk()
+root.title("Sistema de Biblioteca")
+
+# Frame para adicionar autores
+frame_autor = tk.LabelFrame(root, text='Adicionar Autor')
+frame_autor.grid(row=0, column=0, padx=10, pady=10)
+
+tk.Label(frame_autor, text='Nome:').grid(row=0, column=0)
+entry_nome_autor = tk.Entry(frame_autor)
+entry_nome_autor.grid(row=0, column=1)
+
+tk.Label(frame_autor, text='Nacionalidade:').grid(row=1, column=0)
+entry_nacionalidade_autor = tk.Entry(frame_autor)
+entry_nacionalidade_autor.grid(row=1, column=1)
+
+tk.Button(frame_autor, text='Adicionar Autor', command=add_autor).grid(row=2, columnspan=2, pady=5)
+tk.Button(frame_autor, text='Visualizar Autores', command=visualizar_autores).grid(row=3, columnspan=2, pady=5)
+
+# O restante da interface gráfica permanece inalterado
+
+root.mainloop()
+
+# Fecha a conexão com o banco de dados ao encerrar
+conn.close()
